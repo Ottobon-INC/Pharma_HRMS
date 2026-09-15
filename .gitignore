@@ -1,5 +1,79 @@
+# ====================================================================
+# Orca Labs Pharma HRMS - Git Ignore Configuration
+# ====================================================================
+
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+.pnp/
+.pnp.js
+
+# Build Artifacts & Distribution
+dist/
+dist-ssr/
+dev-dist/
+build/
+out/
+coverage/
+
+# Local Environment Variables & Secrets (CRITICAL FOR GITHUB)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
+
+# Credentials, Keys & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+*.pub
+id_rsa*
+credentials.json
+serviceAccountKey*.json
+
+# Sensitive Datasets, Exports & Spreadsheets
+*.csv
+*.xlsx
+*.xls
+*.tsv
+!Bulk_Assign_Sample_Data.xlsx
+
+# Databases, Dumps & Backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.bak
+*.bak
+
+# Cache, Diagnostics & Temporary Files
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+pids
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+scratch/
+brain/
+.agents/
+.gemini/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,70 +81,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Dependency directories
-node_modules/
-jspm_packages/
-
-# TypeScript cache
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Vite output
-dist
-dist-ssr
-dev-dist
-build/
-coverage/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*
-!.env.example
-
-# Sensitive database exports & spreadsheets
-*.csv
-HRMS_employees_rows.csv
-*.xlsx
-*.xls
-!Bulk_Assign_Sample_Data.xlsx
-
-# OS files
+# Operating System Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Certificates and Keys
-*.pem
-*.key
-*.cert
-*.crt
-*.pfx
-
-# Editor directories and files
+# IDE & Editor Configurations
+.idea/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-.idea
-.swp
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*~

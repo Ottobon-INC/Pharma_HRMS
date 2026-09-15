@@ -1,18 +1,55 @@
+# ====================================================================
+# Orca Labs Pharma HRMS - Docker Ignore Configuration
+# ====================================================================
+
+# Dependency & Build Caches
 node_modules
 dist
+dist-ssr
 dev-dist
-scripts
+build
+out
+coverage
+
+# Version Control & Metadata
 .git
 .gitignore
 .dockerignore
-.vscode
-.agents
-brain
+metadata.json
+
+# Local Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+
+# Spreadsheets, Client Data & Documentation
 docs
+*.xlsx
+*.xls
+*.csv
 database
+
+# Helper Scripts & Scratch
+scripts
+scratch
+brain
+.agents
+.gemini
+
+# IDE & Editor Files
+.vscode
+.idea
+
+# Documentation & Readmes (not needed inside production container)
 *.md
 *.ps1
 *.log
-scratch
+
+# OS Generated Files
 .DS_Store
 Thumbs.db

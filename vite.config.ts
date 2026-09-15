@@ -92,5 +92,9 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    preview: {
+      port: 9590,
+      host: true,
+    },
   };
 });
