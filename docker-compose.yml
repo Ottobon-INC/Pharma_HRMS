@@ -1,0 +1,29 @@
+services:
+  # ====================================================================
+  # Orca Labs Pharma HRMS - Production Frontend Service (Nginx + PWA)
+  # ====================================================================
+  app:
+    container_name: orca-pharma-hrms
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://zaxnikpkftyfzpmmlevz.supabase.co}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheG5pa3BrZnR5ZnpwbW1sZXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxOTc1NDQsImV4cCI6MjEwMjc3MzU0NH0.AVAwVt2Z8DJMFtTOr8NDbi0u14_hBIdrb3L2TZAJOTw}
+        VITE_COMPANY_NAME: ${VITE_COMPANY_NAME:-Orca Labs}
+        VITE_APP_TITLE: ${VITE_APP_TITLE:-Orca Labs Pharma HRMS}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-AIzaSyDn6JKKmDVEn8GLUBE7kcl_dtIcyU85ZYc}
+        VITE_MAP_DEFAULT_LAT: ${VITE_MAP_DEFAULT_LAT:-17.3850}
+        VITE_MAP_DEFAULT_LNG: ${VITE_MAP_DEFAULT_LNG:-78.4867}
+        VITE_MAP_DEFAULT_ZOOM: ${VITE_MAP_DEFAULT_ZOOM:-12}
+        VITE_OSRM_ENDPOINT: ${VITE_OSRM_ENDPOINT:-https://router.project-osrm.org}
+        VITE_LIVE_BROADCAST_INTERVAL_MS: ${VITE_LIVE_BROADCAST_INTERVAL_MS:-10000}
+    ports:
+      - "${PORT:-9590}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

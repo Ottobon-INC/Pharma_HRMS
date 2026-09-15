@@ -1,0 +1,6 @@
+{
+  "name": "HR Management System",
+  "description": "A simple, highly polished, and bilingual HRMS with Telugu Colloquial and English languages featuring Attendance, Leave, Payroll, Check-In, and Invoices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
