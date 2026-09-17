@@ -16,12 +16,12 @@ RUN npm ci --prefer-offline --no-audit || npm install --legacy-peer-deps
 # Copy application source code
 COPY . .
 
-# Build-time environment arguments (with defaults for turnkey zero-config clone & run)
-ARG VITE_SUPABASE_URL="https://zaxnikpkftyfzpmmlevz.supabase.co"
-ARG VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheG5pa3BrZnR5ZnpwbW1sZXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxOTc1NDQsImV4cCI6MjEwMjc3MzU0NH0.AVAwVt2Z8DJMFtTOr8NDbi0u14_hBIdrb3L2TZAJOTw"
+# Build-time environment arguments (passed via docker build --build-arg or docker compose)
+ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_ANON_KEY=""
 ARG VITE_COMPANY_NAME="Orca Labs"
 ARG VITE_APP_TITLE="Orca Labs Pharma HRMS"
-ARG VITE_GOOGLE_MAPS_API_KEY="AIzaSyDn6JKKmDVEn8GLUBE7kcl_dtIcyU85ZYc"
+ARG VITE_GOOGLE_MAPS_API_KEY=""
 ARG VITE_MAP_DEFAULT_LAT="17.3850"
 ARG VITE_MAP_DEFAULT_LNG="78.4867"
 ARG VITE_MAP_DEFAULT_ZOOM="12"
