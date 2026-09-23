@@ -9,6 +9,7 @@ import { useLeaves } from './hooks/useLeaves';
 import { useAttendance } from './hooks/useAttendance';
 import { useLocationPins } from './hooks/useLocationPins';
 import { useTaskModule } from './hooks/useTaskModule';
+import { useHolidays } from './hooks/useHolidays';
 
 // Shared Modal and Auth Components
 import LoginScreen from './components/LoginScreen';
@@ -142,6 +143,7 @@ export default function App() {
   const { toggleCheckIn, updateAttendance, forceCloseSession } = useAttendance(isLocalMode, loadData);
   const { addPin } = useLocationPins(currentUser?.id, isLocalMode);
   const { tasks, createTask, updateTask, updateTaskStatus, approveTask, rejectTask, reassignTask, deleteTask } = useTaskModule(employees);
+  const { holidays, todayHoliday, nextHoliday, holidayEve, isLoading: holidaysLoading } = useHolidays();
 
   useEffect(() => {
     loadData();
@@ -334,6 +336,11 @@ export default function App() {
                 onApproveTask={approveTask}
                 onRejectTask={rejectTask}
                 onReassignTask={reassignTask}
+                holidays={holidays}
+                todayHoliday={todayHoliday}
+                nextHoliday={nextHoliday}
+                holidayEve={holidayEve}
+                holidaysLoading={holidaysLoading}
               />
             </React.Suspense>
           </main>

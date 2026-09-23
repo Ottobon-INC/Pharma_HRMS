@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight, Calendar, Sun, Moon } from 'lucide-react';
-import { Language, Employee, LeaveRequest, isExemptAdmin } from '../types';
+import { Language, Employee, LeaveRequest, isExemptAdmin, Holiday } from '../types';
 import { translations } from '../translations';
 import TickerAlert from './TickerAlert';
+import HolidayCalendarWidget from './HolidayCalendarWidget';
 
 interface AdminDashboardProps {
   language: Language;
   employees: Employee[];
   currentUser?: Employee;
   setActiveTab: (tab: string) => void;
+  holidays?: Holiday[];
+  todayHoliday?: Holiday | null;
+  nextHoliday?: Holiday | null;
+  holidayEve?: Holiday | null;
+  holidaysLoading?: boolean;
 }
 
-export default function AdminDashboard({ language, employees, currentUser, setActiveTab }: AdminDashboardProps) {
+export default function AdminDashboard({
+  language,
+  employees,
+  currentUser,
+  setActiveTab,
+  holidays = [],
+  todayHoliday = null,
+  nextHoliday = null,
+  holidayEve = null,
+  holidaysLoading = false
+}: AdminDashboardProps) {
   const t = translations[language];
   const [tick, setTick] = useState(0);
 
@@ -112,7 +128,7 @@ export default function AdminDashboard({ language, employees, currentUser, setAc
     <div id="admin-dashboard-container" className="space-y-8 animate-fadeIn pt-4">
       
       {/* Ticker Alerts */}
-      <TickerAlert employees={employees} />
+      <TickerAlert employees={employees} holidayEve={holidayEve} todayHoliday={todayHoliday} />
 
       {/* 1. Header: Greeting & Quick Stats */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 pb-2">
@@ -293,9 +309,18 @@ export default function AdminDashboard({ language, employees, currentUser, setAc
           </div>
         </div>
 
-        {/* Column 3: Quick Actions (Time Log Style) */}
+        {/* Column 3: Quick Actions & Holiday Calendar */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm h-full flex flex-col">
+          {/* Always-visible Holiday Calendar Widget (Compact Mode) */}
+          <HolidayCalendarWidget
+            mode="compact"
+            holidays={holidays}
+            todayHoliday={todayHoliday}
+            nextHoliday={nextHoliday}
+            isLoading={holidaysLoading}
+          />
+
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col">
             <h3 className="text-base font-bold text-slate-800 mb-6">Quick Links</h3>
             
             <div className="flex-1 space-y-3">

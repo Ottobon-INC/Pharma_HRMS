@@ -8,6 +8,15 @@ export type Hospital = 'orca_labs' | 'both' | 'vizag_ivf' | 'medcy_hospitals';
 export type HierarchyLevel = 'be' | 'rsm' | 'zsm' | 'executive' | 'admin' | 'employee' | 'team_lead' | 'manager' | 'senior_manager';
 export type PharmaZone = 'TS' | 'AP' | 'Corporate';
 
+export interface Holiday {
+  id: string;
+  date: string;
+  day: string;
+  name: string;
+  type: 'gazetted' | 'sunday_compensatory';
+  year: number;
+}
+
 /**
  * In Pharma HRMS, ONLY the 2 corporate admins (P Aswani and NV Divya Sirisha)
  * are exempt from checking in.

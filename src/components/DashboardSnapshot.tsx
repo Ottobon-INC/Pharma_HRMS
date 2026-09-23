@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from"react";
 import { Camera, X, MapPin, AlertCircle, Coffee, Play } from"lucide-react";
-import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee } from"../types";
+import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee, Holiday } from"../types";
 import { translations } from"../translations";
 import LocationPinTimeline from"./LocationPinTimeline";
 import TickerAlert from"./TickerAlert";
+import HolidayCalendarWidget from"./HolidayCalendarWidget";
 import { getActiveBreak, startBreak, endBreak } from"../lib/services/break-service";
 
 interface DashboardSnapshotProps {
@@ -17,9 +18,30 @@ interface DashboardSnapshotProps {
  onToggleCheckIn: (photoData?: string, punchType?: import("../types").PunchType, punchNote?: string) => Promise<{success: boolean, geoError?: any, error?: string} | void>;
  pins: import("../types").LocationPin[];
  onAddPin: (pinType: import("../types").PinType, label?: string, photoData?: string) => Promise<{ success: boolean; error?: string }>;
+ holidays?: Holiday[];
+ todayHoliday?: Holiday | null;
+ nextHoliday?: Holiday | null;
+ holidayEve?: Holiday | null;
+ holidaysLoading?: boolean;
 }
 
-export default function DashboardSnapshot({ language, currentUser, isCheckedIn, logs, attendanceRecords, leaveBalance, setActiveTab, onToggleCheckIn, pins, onAddPin }: DashboardSnapshotProps) {
+export default function DashboardSnapshot({
+  language,
+  currentUser,
+  isCheckedIn,
+  logs,
+  attendanceRecords,
+  leaveBalance,
+  setActiveTab,
+  onToggleCheckIn,
+  pins,
+  onAddPin,
+  holidays = [],
+  todayHoliday = null,
+  nextHoliday = null,
+  holidayEve = null,
+  holidaysLoading = false
+}: DashboardSnapshotProps) {
  const t = translations[language];
 
  const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -179,7 +201,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
 
  return (
   <div id="dashboard-snapshot-container"className="space-y-6 sm:space-y-8 animate-fadeIn">
-   <TickerAlert employees={[currentUser]} />
+   <TickerAlert employees={[currentUser]} holidayEve={holidayEve} todayHoliday={todayHoliday} />
 
       {/* 1. Header & Quick Stats Row */}
    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -213,10 +235,10 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
      </div>
      <div className="text-left">
       <h4 className="font-bold text-slate-800 text-[15px]">
-       {isOnBreak ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break') : isCheckedIn ? t.checkedIn : t.checkedOut}
+       {isOnBreak ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break') : isCheckedIn ? t.checkedIn : todayHoliday ? `Holiday • ${todayHoliday.name}` : t.checkedOut}
       </h4>
       <p className="text-[13px] text-slate-500 font-medium mt-0.5">
-       {isOnBreak ? (language === 'te' ? 'మీరు విరామంలో ఉన్నారు.' : 'Shift paused.') : isCheckedIn ? `Since ${latestCheckIn?.checkInTime || ''}` : `Today - ${new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`}
+       {isOnBreak ? (language === 'te' ? 'మీరు విరామంలో ఉన్నారు.' : 'Shift paused.') : isCheckedIn ? `Since ${latestCheckIn?.checkInTime || ''}` : todayHoliday ? `Enjoy your ${todayHoliday.name} holiday!` : `Today - ${new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`}
       </p>
      </div>
     </div>
@@ -279,6 +301,15 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
        </div>
       </div>
      </div>
+
+     {/* Holiday Calendar Widget (Full Mode) - Always Visible */}
+     <HolidayCalendarWidget
+       mode="full"
+       holidays={holidays}
+       todayHoliday={todayHoliday}
+       nextHoliday={nextHoliday}
+       isLoading={holidaysLoading}
+     />
     </div>
 
     {/* Column 2: Field Operations & Visits */}

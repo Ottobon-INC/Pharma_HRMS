@@ -1,5 +1,5 @@
 import React from 'react';
-import { Employee, Language, Task, PunchType, LeaveBalance, PinType } from '../../types';
+import { Employee, Language, Task, PunchType, LeaveBalance, PinType, Holiday } from '../../types';
 
 // Lazy Loaded Modules
 const DashboardSnapshot = React.lazy(() => import('../DashboardSnapshot'));
@@ -53,6 +53,12 @@ interface AppRouterProps {
  onRejectTask?: (taskId: string, approverId: string, note: string) => Promise<any>;
  onReassignTask?: (taskId: string, newAssigneeId: string, newAssigneeName?: string) => Promise<any>;
  onOpenProfile?: () => void;
+ // Holiday Calendar Props
+ holidays?: Holiday[];
+ todayHoliday?: Holiday | null;
+ nextHoliday?: Holiday | null;
+ holidayEve?: Holiday | null;
+ holidaysLoading?: boolean;
 }
 
 export const AppRouter: React.FC<AppRouterProps> = ({
@@ -83,7 +89,12 @@ export const AppRouter: React.FC<AppRouterProps> = ({
  onUpdateTaskStatus,
  onApproveTask,
  onRejectTask,
- onReassignTask
+ onReassignTask,
+ holidays,
+ todayHoliday,
+ nextHoliday,
+ holidayEve,
+ holidaysLoading
 }) => {
  switch (activeTab) {
   // --- EMPLOYEE MODULES ---
@@ -102,6 +113,11 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      }
      pins={currentUser.locationPins || []}
      onAddPin={onAddPin}
+     holidays={holidays}
+     todayHoliday={todayHoliday}
+     nextHoliday={nextHoliday}
+     holidayEve={holidayEve}
+     holidaysLoading={holidaysLoading}
     />
    );
   case 'attendance':
@@ -154,6 +170,11 @@ export const AppRouter: React.FC<AppRouterProps> = ({
       employees={employees}
       currentUser={currentUser}
       setActiveTab={setActiveTab}
+      holidays={holidays}
+      todayHoliday={todayHoliday}
+      nextHoliday={nextHoliday}
+      holidayEve={holidayEve}
+      holidaysLoading={holidaysLoading}
      />
    );
   case 'directory':
