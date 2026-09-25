@@ -122,7 +122,9 @@ export default function App() {
         'field-ops': 'fieldOps',
         'tasks': 'tasks',
         'admin-tasks': 'adminTasks',
-        'team-hub': 'teamHub'
+        'team-hub': 'teamHub',
+        'analytics': 'analytics',
+        'analytics-dashboard': 'analytics'
       };
       
       if (pathToTab[path]) {
@@ -160,7 +162,7 @@ export default function App() {
       'dashboard', 'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
       'officeLocations', 'messages', 'adminSettings', 'fieldOps', 'adminTasks',
       'executiveOverview', 'orgChart', 'doctorPlanner', 'fieldDuty', 'callCapture', 'attendance', 'leave',
-      'teamHub'
+      'teamHub', 'analytics', 'analyticsDashboard'
     ];
     const employeeTabs = [
       'dashboard', 'attendance', 'leave', 'messages', 'fieldDuty', 'callCapture', 'tasks', 'doctorPlanner'

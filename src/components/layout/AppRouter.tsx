@@ -21,6 +21,7 @@ const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
 const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView })));
 const DoctorVisitPlanner = React.lazy(() => import('../DoctorVisitPlanner'));
 const TeamHub = React.lazy(() => import('../TeamHub'));
+const AnalyticsDashboardPage = React.lazy(() => import('../analytics/AnalyticsDashboardPage'));
 
 
 interface AppRouterProps {
@@ -276,8 +277,11 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      onSelectTab={setActiveTab}
     />
    );
+   case 'analytics':
+   case 'analyticsDashboard':
+    return <AnalyticsDashboardPage />;
 
-  default:
+   default:
    return (
     <div className="py-12 text-center text-slate-500 font-medium">
      {noDataText}

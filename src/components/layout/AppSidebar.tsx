@@ -14,7 +14,8 @@ import {
   Menu,
   GitBranch,
   Clock,
-  UserCheck
+  UserCheck,
+  PieChart
 } from 'lucide-react';
 import { Employee, isExemptAdmin } from '../../types';
 
@@ -97,6 +98,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Home size={22} />
               </div>
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Dashboard</span>
+            </button>
+
+            <button onClick={() => onSelectTab('analytics')} className={getBtnClass('analytics')}>
+              <div className={getIconClass('analytics')}>
+                <PieChart size={22} />
+              </div>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Analytics Dashboard</span>
             </button>
 
             <button onClick={() => onSelectTab('orgChart')} className={getBtnClass('orgChart')}>

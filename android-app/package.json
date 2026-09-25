@@ -1,0 +1,41 @@
+{
+  "name": "orca-hrms-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orca Labs Pharma HRMS — Android Application (Capacitor + Kotlin)",
+  "scripts": {
+    "build:web": "cd .. && npm run build",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:run": "npx cap run android",
+    "cap:run:device": "npx cap run android --target device",
+    "android:debug": "npm run build:web && npm run cap:sync && npm run cap:run",
+    "android:open": "npm run build:web && npm run cap:sync && npm run cap:open",
+    "assets:generate": "npx capacitor-assets generate --android",
+    "android:release": "cd android && .\\gradlew.bat assembleRelease",
+    "android:bundle": "cd android && .\\gradlew.bat bundleRelease",
+    "android:clean": "cd android && .\\gradlew.bat clean"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/camera": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/keyboard": "^7.0.0",
+    "@capacitor/local-notifications": "^7.0.0",
+    "@capacitor/network": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
+    "@capacitor/push-notifications": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.0.10",
+    "typescript": "~5.8.2"
+  }
+}
