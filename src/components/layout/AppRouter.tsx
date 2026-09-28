@@ -161,6 +161,9 @@ export const AppRouter: React.FC<AppRouterProps> = ({
    return (
     <EmployeeDirectory
      language={language}
+     currentUser={currentUser}
+     allEmployees={allEmployees}
+     tasks={tasks}
      employees={employees}
      onAddEmployee={onAddEmployee}
      onUpdateEmployee={onUpdateEmployee}

@@ -1,36 +1,50 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X, Building2 } from 'lucide-react';
-import { Language, Employee, LeaveType, Branch, HierarchyLevel, isExemptAdmin } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X, Building2, ChevronDown, Download, BarChart2, FileSpreadsheet } from 'lucide-react';
+import { Language, Employee, LeaveType, Branch, HierarchyLevel, isExemptAdmin, Task } from '../types';
 import { translations } from '../translations';
 import AttendanceModule from './AttendanceModule';
 import LeaveModule from './LeaveModule';
 import ExperienceLetter from './ExperienceLetter';
+import ExportLeadsModal from './ExportLeadsModal';
+import { 
+  isUserAdminOrRsm, 
+  getWeeklyDateRange, 
+  getMonthlyDateRange, 
+  calculateEmployeeLeads, 
+  downloadLeadsReport 
+} from '../lib/services/leads-service';
 
 interface EmployeeDirectoryProps {
- language: Language;
- employees: Employee[];
- onAddEmployee: (emp: Partial<Employee>) => void;
- onUpdateEmployee: (id: string, emp: Partial<Employee>) => void;
- onDeleteEmployee: (id: string) => void;
- // Propagate actions on employee's leave
- onApproveEmployeeLeave: (empId: string, reqId: string) => void;
- onRejectEmployeeLeave: (empId: string, reqId: string) => void;
- onApplyEmployeeLeave: (empId: string, type: LeaveType, from: string, to: string, reason: string) => Promise<void>;
- onUpdateLeaveBalances: (empId: string, type: LeaveType, allotted: number, used: number) => void;
+  language: Language;
+  employees: Employee[];
+  currentUser?: Employee;
+  allEmployees?: Employee[];
+  tasks?: Task[];
+  onAddEmployee: (emp: Partial<Employee>) => void;
+  onUpdateEmployee: (id: string, emp: Partial<Employee>) => void;
+  onDeleteEmployee: (id: string) => void;
+  // Propagate actions on employee's leave
+  onApproveEmployeeLeave: (empId: string, reqId: string) => void;
+  onRejectEmployeeLeave: (empId: string, reqId: string) => void;
+  onApplyEmployeeLeave: (empId: string, type: LeaveType, from: string, to: string, reason: string) => Promise<void>;
+  onUpdateLeaveBalances: (empId: string, type: LeaveType, allotted: number, used: number) => void;
 }
 
 export default function EmployeeDirectory({
- language,
- employees,
- onAddEmployee,
- onUpdateEmployee,
- onDeleteEmployee,
- onApproveEmployeeLeave,
- onRejectEmployeeLeave,
- onApplyEmployeeLeave,
- onUpdateLeaveBalances,
+  language,
+  employees,
+  currentUser,
+  allEmployees,
+  tasks = [],
+  onAddEmployee,
+  onUpdateEmployee,
+  onDeleteEmployee,
+  onApproveEmployeeLeave,
+  onRejectEmployeeLeave,
+  onApplyEmployeeLeave,
+  onUpdateLeaveBalances,
 }: EmployeeDirectoryProps) {
- const t = translations[language];
+  const t = translations[language];
 
  // UI state
  const [inspectingEmpId, setInspectingEmpId] = useState<string | null>(null);
@@ -55,6 +69,134 @@ export default function EmployeeDirectory({
  const [showEditModal, setShowEditModal] = useState(false);
  const [editTargetId, setEditTargetId] = useState<string | null>(null);
  const [directoryZoneFilter, setDirectoryZoneFilter] = useState<'all' | 'AP' | 'TS' | 'Corporate'>('all');
+
+ // Leads Export, Calendar & Status State
+ const [showExportModal, setShowExportModal] = useState(false);
+ const [exportModalPeriod, setExportModalPeriod] = useState<'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom'>('this_week');
+ const [showExportDropdown, setShowExportDropdown] = useState(false);
+ const [isDirectExporting, setIsDirectExporting] = useState(false);
+ const [weeklyLeadsSummary, setWeeklyLeadsSummary] = useState<Map<string, { completed: number; ongoing: number; yetToStart: number; total: number; rate: number }>>(new Map());
+
+ const initialWeek = getWeeklyDateRange(0);
+ const [calendarRange, setCalendarRange] = useState<{
+  startDate: string;
+  endDate: string;
+  label: string;
+  preset: 'this_week' | 'last_week' | 'next_week' | 'this_month' | 'last_month' | 'custom';
+ }>({
+  startDate: initialWeek.startDate,
+  endDate: initialWeek.endDate,
+  label: initialWeek.label,
+  preset: 'this_week'
+ });
+ const [customStartInput, setCustomStartInput] = useState(initialWeek.startDate);
+ const [customEndInput, setCustomEndInput] = useState(initialWeek.endDate);
+
+ const { isAdmin, isRsm, canExport } = isUserAdminOrRsm(currentUser);
+
+ // Load leads metrics for employees dynamically synced with active calendarRange
+ useEffect(() => {
+  if (!canExport) return;
+  let isMounted = true;
+  calculateEmployeeLeads(
+   employees, 
+   allEmployees || employees, 
+   tasks, 
+   calendarRange.startDate, 
+   calendarRange.endDate, 
+   calendarRange.preset === 'custom' ? 'custom' : calendarRange.preset.includes('month') ? 'monthly' : 'weekly', 
+   calendarRange.label, 
+   currentUser
+  )
+   .then(items => {
+    if (!isMounted) return;
+    const map = new Map<string, { completed: number; ongoing: number; yetToStart: number; total: number; rate: number }>();
+    items.forEach(it => {
+     map.set(it.employeeId, {
+      completed: it.completedLeads,
+      ongoing: it.ongoingLeads,
+      yetToStart: it.yetToStartLeads,
+      total: it.totalLeads,
+      rate: it.completionRate
+     });
+    });
+    setWeeklyLeadsSummary(map);
+   })
+   .catch(err => console.warn('Could not compute leads map:', err));
+
+  return () => {
+   isMounted = false;
+  };
+ }, [employees, allEmployees, tasks, canExport, currentUser, calendarRange]);
+
+ const handleSelectTimeframe = (preset: 'this_week' | 'last_week' | 'next_week' | 'this_month' | 'last_month') => {
+  let range: { startDate: string; endDate: string; label: string };
+  if (preset === 'next_week') {
+   range = getWeeklyDateRange(1);
+  } else if (preset === 'this_week') {
+   range = getWeeklyDateRange(0);
+  } else if (preset === 'last_week') {
+   range = getWeeklyDateRange(-1);
+  } else if (preset === 'this_month') {
+   range = getMonthlyDateRange(0);
+  } else {
+   range = getMonthlyDateRange(-1);
+  }
+  setCalendarRange({ ...range, preset });
+  setShowExportDropdown(false);
+ };
+
+ const handleDirectExport = async (type: 'this_week' | 'last_week' | 'next_week' | 'this_month' | 'last_month' | 'active_calendar' | 'custom') => {
+  setShowExportDropdown(false);
+  if (!currentUser) return;
+  setIsDirectExporting(true);
+  try {
+   let range: { startDate: string; endDate: string; label: string; periodType: 'weekly' | 'monthly' | 'custom' };
+   if (type === 'active_calendar') {
+    range = {
+     startDate: calendarRange.startDate,
+     endDate: calendarRange.endDate,
+     label: calendarRange.label,
+     periodType: calendarRange.preset === 'custom' ? 'custom' : calendarRange.preset.includes('month') ? 'monthly' : 'weekly'
+    };
+   } else if (type === 'next_week') {
+    range = { ...getWeeklyDateRange(1), periodType: 'weekly' };
+   } else if (type === 'this_week') {
+    range = { ...getWeeklyDateRange(0), periodType: 'weekly' };
+   } else if (type === 'last_week') {
+    range = { ...getWeeklyDateRange(-1), periodType: 'weekly' };
+   } else if (type === 'this_month') {
+    range = { ...getMonthlyDateRange(0), periodType: 'monthly' };
+   } else if (type === 'last_month') {
+    range = { ...getMonthlyDateRange(-1), periodType: 'monthly' };
+   } else {
+    range = {
+     startDate: customStartInput,
+     endDate: customEndInput,
+     label: `Custom Period (${customStartInput} to ${customEndInput})`,
+     periodType: 'custom'
+    };
+   }
+
+   const reportItems = await calculateEmployeeLeads(
+    employees,
+    allEmployees || employees,
+    tasks,
+    range.startDate,
+    range.endDate,
+    range.periodType,
+    range.label,
+    currentUser
+   );
+
+   downloadLeadsReport(reportItems, range.label, currentUser);
+  } catch (err: any) {
+   console.error("Direct export error:", err);
+   alert("Failed to export leads report: " + (err?.message || String(err)));
+  } finally {
+   setIsDirectExporting(false);
+  }
+ };
 
  // Form State
  const [formName, setFormName] = useState('');
@@ -481,6 +623,228 @@ export default function EmployeeDirectory({
       </button>
      </div>
 
+     {/* Combined Single Leads Calendar & Export Dropdown (RSM & Admin Only) */}
+     {canExport && (
+      <div className="relative inline-block text-left">
+       <button
+        id="btn-export-leads-dropdown"
+        onClick={() => setShowExportDropdown(!showExportDropdown)}
+        disabled={isDirectExporting}
+        className="flex items-center gap-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 hover:from-slate-800 hover:to-teal-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-slate-900/15 cursor-pointer transition-all active:scale-95 border border-teal-700/30"
+        title={language === 'te' ? 'ఉద్యోగుల లీడ్స్ నివేదిక ఎగుమతి మరియు క్యాలెండర్' : 'Export Employee Leads & Select Calendar Range'}
+       >
+        <FileSpreadsheet className="w-4 h-4 text-teal-300 shrink-0" />
+        <div className="flex flex-col items-start text-left leading-tight">
+         <span className="font-bold">{language === 'te' ? 'లీడ్స్ ఎగుమతి' : 'Export Leads'}</span>
+         <span className="text-[9px] text-teal-300 font-medium">
+          {calendarRange.preset === 'custom' ? 'Custom Range' : calendarRange.label.split('(')[0]?.trim()}
+         </span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-300 transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
+       </button>
+
+       {showExportDropdown && (
+        <>
+         <div 
+          className="fixed inset-0 z-30" 
+          onClick={() => setShowExportDropdown(false)} 
+         />
+         
+         <div className="absolute right-0 mt-2 w-84 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-40 animate-scaleUp">
+          {/* Header */}
+          <div className="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
+           <div>
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 block">
+             {language === 'te' ? 'లీడ్స్ ఎగుమతి & క్యాలెండర్' : 'Export Leads & Timeframe'}
+            </span>
+            <span className="text-[9px] text-slate-400">
+             {language === 'te' ? 'ఫీల్డ్ ఉద్యోగుల లీడ్స్ డేటా' : 'Field Representatives Lead Reports'}
+            </span>
+           </div>
+           <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+            {isAdmin ? 'Admin' : 'RSM'}
+           </span>
+          </div>
+
+          {/* Active Timeframe Direct Export Banner */}
+          <div className="p-3 mx-3 my-2 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-200/70 flex items-center justify-between gap-2">
+           <div className="flex flex-col min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-teal-700">Active Calendar Leads</span>
+            <span className="text-xs font-bold text-slate-800 truncate">{calendarRange.label}</span>
+           </div>
+           <button
+            onClick={() => handleDirectExport('active_calendar')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shrink-0 transition-colors shadow-xs cursor-pointer"
+            title="Download CSV for currently active calendar leads"
+           >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export .CSV</span>
+           </button>
+          </div>
+
+          {/* Timeframe Presets (Both sides combined: Left = Select Active Calendar, Right = Direct Download CSV) */}
+          <div className="px-3 py-1 space-y-1.5">
+           <div className="px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            {language === 'te' ? 'కాలపరిమితిని ఎంచుకోండి / డౌన్‌లోడ్ చేయండి' : 'Select Timeframe / Quick Export'}
+           </div>
+
+           {[
+            {
+             id: 'this_week',
+             title: language === 'te' ? 'ఈ వారం లీడ్స్' : 'This Week Leads',
+             subtitle: 'Current Week (Mon - Sun)',
+             badge: 'Current'
+            },
+            {
+             id: 'last_week',
+             title: language === 'te' ? 'గత వారం లీడ్స్' : 'Last Week Leads',
+             subtitle: 'Previous Week (-1 Week)',
+             badge: '-1 W'
+            },
+            {
+             id: 'next_week',
+             title: language === 'te' ? 'వచ్చే వారం లీడ్స్' : 'Next Week Leads',
+             subtitle: 'Upcoming Week (+1 Week)',
+             badge: '+1 W'
+            },
+            {
+             id: 'this_month',
+             title: language === 'te' ? 'ఈ నెల లీడ్స్ (ప్రతి నెల)' : 'Every Month Leads',
+             subtitle: 'Current Month Leads',
+             badge: 'Month'
+            },
+            {
+             id: 'last_month',
+             title: language === 'te' ? 'గత నెల లీడ్స్' : 'Previous Month Leads',
+             subtitle: 'Previous Month Leads',
+             badge: '-1 M'
+            }
+           ].map(opt => {
+            const isActive = calendarRange.preset === opt.id;
+            return (
+             <div
+              key={opt.id}
+              className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
+               isActive 
+                ? 'bg-teal-50/80 border-teal-300/80 shadow-xs' 
+                : 'bg-white hover:bg-slate-50 border-slate-100'
+              }`}
+             >
+              {/* Left Side: Click to select as active calendar leads ("if we click on the last week the last week leads should be come") */}
+              <button
+               type="button"
+               onClick={() => handleSelectTimeframe(opt.id as any)}
+               className="flex items-center gap-2.5 min-w-0 text-left flex-1 cursor-pointer"
+              >
+               <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                isActive ? 'border-teal-600 bg-teal-600' : 'border-slate-300 bg-white'
+               }`}>
+                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+               </div>
+               <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5">
+                 <span className={`text-xs font-bold truncate ${isActive ? 'text-teal-900' : 'text-slate-800'}`}>
+                  {opt.title}
+                 </span>
+                 <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 text-slate-600 font-semibold shrink-0">
+                  {opt.badge}
+                 </span>
+                </div>
+                <span className="text-[9px] text-slate-400 truncate">{opt.subtitle}</span>
+               </div>
+              </button>
+
+              {/* Right Side: Quick Export Button for this specific timeframe */}
+              <button
+               type="button"
+               onClick={(e) => {
+                e.stopPropagation();
+                handleDirectExport(opt.id as any);
+               }}
+               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-teal-600 hover:text-white text-slate-700 text-[10px] font-bold transition-all shrink-0 ml-2 cursor-pointer group"
+               title={`Export ${opt.title} (.CSV)`}
+              >
+               <Download className="w-3 h-3 text-slate-500 group-hover:text-white" />
+               <span>.CSV</span>
+              </button>
+             </div>
+            );
+           })}
+          </div>
+
+          {/* Custom Date Range Picker */}
+          <div className="px-3 pt-2 mt-2 border-t border-slate-100 space-y-2">
+           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            {language === 'te' ? 'కస్టమ్ తేదీ పరిధి' : 'Custom Date Range'}
+           </span>
+           <div className="grid grid-cols-2 gap-2">
+            <div>
+             <label className="text-[9px] font-bold text-slate-400 block mb-0.5">From</label>
+             <input
+              type="date"
+              value={customStartInput}
+              onChange={(e) => setCustomStartInput(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 font-mono"
+             />
+            </div>
+            <div>
+             <label className="text-[9px] font-bold text-slate-400 block mb-0.5">To</label>
+             <input
+              type="date"
+              value={customEndInput}
+              onChange={(e) => setCustomEndInput(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 font-mono"
+             />
+            </div>
+           </div>
+           <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+             onClick={() => {
+              if (customStartInput && customEndInput) {
+               setCalendarRange({
+                startDate: customStartInput,
+                endDate: customEndInput,
+                label: `Custom (${customStartInput} to ${customEndInput})`,
+                preset: 'custom'
+               });
+               setShowExportDropdown(false);
+              }
+             }}
+             className="py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
+            >
+             {language === 'te' ? 'పరిధి వర్తింపజేయి' : 'Apply to Table'}
+            </button>
+            <button
+             onClick={() => handleDirectExport('custom')}
+             className="py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-1 shadow-xs"
+            >
+             <Download className="w-3 h-3" />
+             <span>{language === 'te' ? 'ఎగుమతి చేయండి' : 'Export Custom'}</span>
+            </button>
+           </div>
+          </div>
+
+          {/* Preview Modal Trigger */}
+          <div className="px-3 pt-2 mt-2 border-t border-slate-100">
+           <button
+            onClick={() => {
+             setShowExportDropdown(false);
+             setExportModalPeriod(calendarRange.preset);
+             setShowExportModal(true);
+            }}
+            className="w-full text-center px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+           >
+            <BarChart2 className="w-3.5 h-3.5" />
+            <span>{language === 'te' ? 'పూర్తి ప్రివ్యూ & వివరాలు...' : 'Preview Leads & Full Table...'}</span>
+           </button>
+          </div>
+
+         </div>
+        </>
+       )}
+      </div>
+     )}
+
      <button
       id="btn-add-employee"
       onClick={handleOpenAdd}
@@ -501,7 +865,19 @@ export default function EmployeeDirectory({
         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400">{dirText.colEmp}</th>
         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 hidden sm:table-cell">{dirText.colDesignation}</th>
         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 hidden md:table-cell">{dirText.colJoin}</th>
-        <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 hidden sm:table-cell">{dirText.colStatus}</th>
+        <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 hidden sm:table-cell">
+         {language === 'te' ? 'ఉద్యోగి స్థితి' : 'Employee Status'}
+        </th>
+        {canExport && (
+         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-teal-700 hidden md:table-cell">
+          <div className="flex items-center gap-1.5 flex-wrap">
+           <span>{language === 'te' ? 'లీడ్స్ స్థితి' : 'Leads Status'}</span>
+           <span className="px-1.5 py-0.5 rounded bg-teal-50 text-[9px] font-mono text-teal-800 border border-teal-200 normal-case font-bold">
+            {calendarRange.preset === 'custom' ? 'Custom Range' : calendarRange.label.split('(')[0]?.trim()}
+           </span>
+          </div>
+         </th>
+        )}
         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 hidden lg:table-cell">{dirText.colLocation}</th>
         <th className="p-5 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">{dirText.colActions}</th>
        </tr>
@@ -598,12 +974,78 @@ export default function EmployeeDirectory({
           <span className="text-xs text-slate-500 font-mono">{emp.joiningDate}</span>
          </td>
 
-         {/* Attendance status */}
+         {/* Employee Status (Account Status) */}
          <td className="p-5 hidden sm:table-cell">
-          <div className="flex flex-col gap-2 items-start">
-           {getTodayStatusBadge(emp)}
+          <div className="flex flex-col gap-1 items-start">
+           {/* Account Status Badge */}
+           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[9px] font-bold rounded-full border ${
+            emp.status === 'inactive' 
+             ? 'bg-rose-50 text-rose-700 border-rose-200' 
+             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+           }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${emp.status === 'inactive' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+            {emp.status === 'inactive' ? (language === 'te' ? 'నిష్క్రియం' : 'Inactive') : (language === 'te' ? 'యాక్టివ్' : 'Active')}
+           </span>
           </div>
          </td>
+
+         {/* Weekly Leads Status for Admin & RSM */}
+         {canExport && (
+          <td className="p-5 hidden md:table-cell" onClick={(e) => {
+           e.stopPropagation();
+           setExportModalPeriod(calendarRange.preset);
+           setShowExportModal(true);
+          }}>
+           {(() => {
+            const isLeadership = 
+             emp.role === 'admin' ||
+             emp.hierarchyLevel === 'admin' ||
+             emp.hierarchyLevel === 'executive' ||
+             emp.hierarchyLevel === 'zsm' ||
+             emp.hierarchyLevel === 'rsm' ||
+             emp.hierarchyLevel === 'manager' ||
+             isExemptAdmin(emp) ||
+             (emp.designation && /admin|gm|general\s*manager|zsm|rsm|regional\s*sales\s*manager|hr\s*&\s*fin/i.test(emp.designation));
+
+            if (isLeadership) {
+             return <span className="text-[10px] text-slate-400 italic font-medium">Management</span>;
+            }
+
+            if (emp.status === 'inactive') {
+             return <span className="text-[10px] text-slate-400 italic">No Active Leads</span>;
+            }
+
+            const summary = weeklyLeadsSummary.get(emp.id) || { completed: 0, ongoing: 0, yetToStart: 0, total: 0, rate: 0 };
+            return (
+             <div className="flex flex-col gap-1.5 items-start hover:opacity-85 transition-opacity cursor-pointer group/lead" title="Click to view full leads performance">
+              <div className="flex items-center gap-1.5 flex-wrap">
+               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Completed Leads">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {summary.completed} Done
+               </span>
+               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Ongoing Leads">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {summary.ongoing} Active
+               </span>
+               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Yet to Start Leads">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                {summary.yetToStart} New
+               </span>
+              </div>
+              <div className="flex items-center gap-2 w-full max-w-[120px]">
+               <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                <div 
+                 className="h-full bg-teal-600 rounded-full transition-all" 
+                 style={{ width: `${Math.min(100, summary.rate)}%` }} 
+                />
+               </div>
+               <span className="text-[9px] font-bold text-slate-500">{summary.rate}%</span>
+              </div>
+             </div>
+            );
+           })()}
+          </td>
+         )}
 
          {/* Location column */}
          <td className="p-5 hidden lg:table-cell">
@@ -1249,6 +1691,20 @@ export default function EmployeeDirectory({
       <img src={viewingPhotoUrl} alt="Check In Full"className="w-auto h-auto max-w-full max-h-[85vh] rounded-2xl shadow-md object-contain border-4 border-white/10"/>
      </div>
     </div>
+   )}
+
+   {/* Export Leads Modal (RSM & Admin Only) */}
+   {canExport && currentUser && (
+    <ExportLeadsModal
+     language={language}
+     isOpen={showExportModal}
+     onClose={() => setShowExportModal(false)}
+     employees={employees}
+     allEmployees={allEmployees || employees}
+     tasks={tasks}
+     currentUser={currentUser}
+     initialPeriod={exportModalPeriod}
+    />
    )}
   </div>
  );
